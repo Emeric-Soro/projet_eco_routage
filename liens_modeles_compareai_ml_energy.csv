@@ -1,0 +1,16 @@
+compareai_model,mlenergy_nickname,mlenergy_model_id,mlenergy_task,match_level,match_note
+gemma-3-12b,Gemma 3 12B,google/gemma-3-12b-it,lm-arena-chat,famille/version proche,CompareAI omet le suffixe it; variante à confirmer
+gemma-3-27b,Gemma 3 27B,google/gemma-3-27b-it,lm-arena-chat,famille/version proche,CompareAI omet le suffixe it; variante à confirmer
+llama-3.1-8b,Llama 3.1 8B Instruct,meta-llama/Llama-3.1-8B-Instruct,lm-arena-chat,famille,CompareAI omet le suffixe Instruct
+llama-3.1-70b,Llama 3.1 70B Instruct,meta-llama/Llama-3.1-70B-Instruct,lm-arena-chat,famille,CompareAI omet le suffixe Instruct
+llama-3.3-70b,Llama 3.3 70B Instruct,meta-llama/Llama-3.3-70B-Instruct,lm-arena-chat,famille,CompareAI omet le suffixe Instruct
+qwen-3-8b,Qwen 3 8B,Qwen/Qwen3-8B,lm-arena-chat,version proche,Convention de nom CompareAI avec tiret supplémentaire
+qwen3-32b,Qwen 3 32B,Qwen/Qwen3-32B,lm-arena-chat,nom exact normalisé,Modèle et version concordants
+qwen3-30b-a3b,Qwen 3 30B A3B Instruct,Qwen/Qwen3-30B-A3B-Instruct-2507,lm-arena-chat,famille/version proche,CompareAI n'indique ni Instruct ni version 2507
+deepseek-chat-v3.1,DeepSeek V3.1,deepseek-ai/DeepSeek-V3.1,lm-arena-chat,famille/alias,Alias CompareAI à confirmer comme même checkpoint
+llama-4-scout,Llama 4 Scout 17B 16E Instruct,meta-llama/Llama-4-Scout-17B-16E-Instruct,lm-arena-chat,famille/version proche,CompareAI omet taille et suffixe Instruct
+llama-maverick,Llama 4 Maverick 17B 128E Instruct FP8,meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8,lm-arena-chat,famille/version proche,CompareAI omet taille; Instruct et précision FP8
+deepseek-r1-0528,DeepSeek R1,deepseek-ai/DeepSeek-R1-0528,gpqa,version proche,Tâche raisonnement uniquement; ne pas utiliser comme facteur chat
+gpt-oss-20b,GPT OSS 20B,openai/gpt-oss-20b,gpqa,nom exact normalisé,Tâche GPQA uniquement dans le catalogue
+gpt-oss-120b,GPT OSS 120B,openai/gpt-oss-120b,gpqa,nom exact normalisé,Tâche GPQA uniquement dans le catalogue
+qwen3-coder-480b-a35b-instruct,Qwen 3 Coder 480B A35B,Qwen/Qwen3-Coder-480B-A35B-Instruct,sourcegraph-fim,version proche,Tâche de code uniquement; ne pas utiliser comme facteur chat

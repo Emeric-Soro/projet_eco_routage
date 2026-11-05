@@ -5,6 +5,7 @@ from __future__ import annotations
 import subprocess
 import sys
 import os
+import re
 from pathlib import Path
 
 import streamlit as st
@@ -51,10 +52,146 @@ def display_result(arguments: tuple[str, ...], label: str) -> None:
     if return_code:
         st.error(f"La commande de l'estimateur a échoué (code {return_code}).")
     if stdout:
-        st.text(stdout)
+        if "--eval" in arguments:
+            display_evaluation_explanation(stdout)
+            with st.expander("Afficher les résultats détaillés"):
+                st.text(stdout)
+        else:
+            st.text(stdout)
     if stderr:
         with st.expander("Messages techniques"):
             st.code(stderr)
+
+
+def _evaluation_sections(stdout: str) -> list[dict[str, object]]:
+    """Extrait les métriques des sections d'évaluation imprimées par la CLI."""
+    headers = (
+        "BASELINE CompareAI —",
+        "V0.2 CompareAI —",
+        "HYBRIDE ML.ENERGY —",
+    )
+    raw_sections: list[tuple[str, list[str]]] = []
+    current_header: str | None = None
+    current_lines: list[str] = []
+
+    def save_current() -> None:
+        if current_header is not None:
+            raw_sections.append((current_header, current_lines.copy()))
+
+    for line in stdout.splitlines():
+        if line.startswith(headers):
+            save_current()
+            current_header = line.strip()
+            current_lines = []
+        elif current_header is not None:
+            if not line.strip():
+                save_current()
+                current_header = None
+                current_lines = []
+            else:
+                current_lines.append(line)
+    save_current()
+
+    parsed: list[dict[str, object]] = []
+    for header, lines in raw_sections:
+        body = "\n".join(lines)
+
+        def number(pattern: str) -> float | None:
+            match = re.search(pattern, body, flags=re.IGNORECASE | re.MULTILINE)
+            return float(match.group(1)) if match else None
+
+        parsed.append({
+            "header": header,
+            "mae": number(r"^\s*MAE(?: énergie)?\s*:\s*(-?[\d.]+)\s*Wh"),
+            "relative_error": number(r"^\s*Erreur relative méd\.\s*:\s*([\d.]+)\s*%"),
+            "route_accuracy": number(r"^\s*Accuracy routage\s*:\s*([\d.]+)\s*%"),
+            "input_share": number(r"^\s*Part médiane énergie d'entrée\s*:\s*([\d.]+)\s*%"),
+            "input_exponent": number(r"^\s*Exposant médian d'entrée positif\s*:\s*([\d.]+)"),
+        })
+    return parsed
+
+
+def display_evaluation_explanation(stdout: str) -> None:
+    """Présente une lecture simple des métriques après l'évaluation."""
+    sections = _evaluation_sections(stdout)
+    st.markdown("### Comment lire ces résultats")
+    st.write(
+        "Le test compare les estimations à la référence énergétique historique de CompareAI. "
+        "Il mesure la reproduction de cette référence, pas la consommation réelle d'un GPU."
+    )
+
+    baseline = next(
+        (section for section in sections
+         if str(section["header"]).startswith("BASELINE CompareAI — V0.1 modèle × longueur")),
+        None,
+    )
+    variants = [
+        section for section in sections
+        if str(section["header"]).startswith("V0.2 CompareAI —")
+    ]
+
+    if baseline is not None and variants:
+        baseline_header = str(baseline["header"])
+        st.caption(f"Référence de comparaison : {baseline_header.split(' — ', 1)[1].split(' (', 1)[0]}.")
+        for variant in variants:
+            variant_header = str(variant["header"])
+            name = variant_header.split(" — ", 1)[1].split(" (", 1)[0]
+            comparisons: list[tuple[str, bool | None]] = []
+            for key, label, lower_is_better, unit in (
+                ("mae", "MAE", True, "Wh"),
+                ("relative_error", "erreur relative médiane", True, "%"),
+                ("route_accuracy", "exactitude de routage", False, "%"),
+            ):
+                old_value = baseline.get(key)
+                new_value = variant.get(key)
+                if not isinstance(old_value, (int, float)) or not isinstance(new_value, (int, float)):
+                    continue
+                delta = float(new_value) - float(old_value)
+                if abs(delta) < 0.0001:
+                    comparisons.append((f"{label} inchangée ({old_value:.2f} {unit})", None))
+                else:
+                    improved = delta < 0 if lower_is_better else delta > 0
+                    direction = "diminue" if delta < 0 else "augmente"
+                    comparisons.append((
+                        f"{label} {direction} de {abs(delta):.2f} {unit} "
+                        f"({old_value:.2f} → {new_value:.2f} {unit})",
+                        improved,
+                    ))
+
+            if comparisons:
+                outcomes = [outcome for _, outcome in comparisons if outcome is not None]
+                if not outcomes:
+                    conclusion = "Les indicateurs sont identiques à ceux de V0.1 sur ce test."
+                elif all(outcomes):
+                    conclusion = "Les trois indicateurs vont dans le sens d'une meilleure reproduction de la référence."
+                elif not any(outcomes):
+                    conclusion = "Aucun de ces indicateurs ne s'améliore par rapport à V0.1 sur ce test."
+                else:
+                    conclusion = "Le bilan est partagé : certaines mesures s'améliorent, d'autres se dégradent."
+                st.markdown(f"**{name}** : " + "; ".join(text for text, _ in comparisons) + ". " + conclusion)
+
+            if name.startswith("régression énergie") and variant.get("input_share") == 0:
+                st.caption(
+                    "La part d'énergie d'entrée estimée est nulle dans cette calibration CompareAI. "
+                    "Cela ne signifie pas que les tokens d'entrée ne consomment aucune énergie en réalité."
+                )
+            if name.startswith("loi de puissance") and variant.get("input_exponent") == 0:
+                st.caption(
+                    "L'exposant d'entrée positif vaut zéro ici : le test CompareAI ne montre pas "
+                    "de contribution d'entrée détectée par cette régression."
+                )
+
+    st.markdown(
+        """
+        - **MAE (Wh)** : écart absolu moyen entre estimation et référence; plus bas est préférable.
+        - **Erreur relative médiane** : écart typique en pourcentage; plus bas est préférable.
+        - **Exactitude de routage** : part des paires où le modèle classé moins énergivore est aussi le moins énergivore dans la référence; plus haut est préférable. Ce n'est pas une mesure de qualité de réponse.
+        - **MAE de sortie (tokens)** : erreur moyenne sur la longueur de réponse prédite.
+        - **Couverture du filtre** : part des cas où au moins un modèle satisfait le seuil de qualité choisi. Les votes et réactions sont des préférences historiques, pas une garantie de qualité.
+        - **Accord avec le vote** : fréquence à laquelle le modèle retenu correspond au choix historique des utilisateurs. Le score qualité et le taux « égale/dépasse » résument, eux, les réactions observées.
+        - Dans l'écart énergétique du filtre de votes, une valeur positive signifie que le modèle retenu est moins énergivore que le choix historique; dans l'écart « routée − autre réponse » du filtre par réactions, une valeur négative signifie que le modèle retenu est moins énergivore.
+        """
+    )
 
 
 st.set_page_config(

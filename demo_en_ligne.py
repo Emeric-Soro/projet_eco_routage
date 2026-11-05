@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import io
 import zipfile
 from pathlib import Path
 
@@ -13,6 +14,7 @@ import streamlit as st
 
 ROOT = Path(__file__).resolve().parent
 SWEETSPOT_ZIP = ROOT / "source_données" / "sweetspot_llm_energy" / "dataset.zip"
+SHARE_BUNDLE = ROOT / "ComparIA_V0.2_partage.zip"
 
 
 def fit_nonnegative_power_law(frame: pd.DataFrame) -> tuple[float, float, float]:
@@ -36,11 +38,21 @@ def fit_nonnegative_power_law(frame: pd.DataFrame) -> tuple[float, float, float]
 
 @st.cache_data(show_spinner=False)
 def load_sweetspot_models() -> tuple[pd.DataFrame, dict[str, tuple[float, float, float]]]:
-    if not SWEETSPOT_ZIP.exists():
-        raise FileNotFoundError(f"Archive SweetSpot absente : {SWEETSPOT_ZIP}")
-
     tables = []
-    with zipfile.ZipFile(SWEETSPOT_ZIP) as archive:
+    if SWEETSPOT_ZIP.exists():
+        archive_context = zipfile.ZipFile(SWEETSPOT_ZIP)
+    elif SHARE_BUNDLE.exists():
+        with zipfile.ZipFile(SHARE_BUNDLE) as bundle:
+            nested_archive = bundle.read(
+                "source_données/sweetspot_llm_energy/dataset.zip"
+            )
+        archive_context = zipfile.ZipFile(io.BytesIO(nested_archive))
+    else:
+        raise FileNotFoundError(
+            "Archive SweetSpot absente : fichier local ou paquet ZIP de partage introuvable."
+        )
+
+    with archive_context as archive:
         csv_paths = sorted(
             name for name in archive.namelist()
             if name.endswith(".csv") and name.count("/") == 2 and "traces/" not in name

@@ -137,10 +137,10 @@ def display_evaluation_explanation(stdout: str) -> None:
             variant_header = str(variant["header"])
             name = variant_header.split(" — ", 1)[1].split(" (", 1)[0]
             comparisons: list[tuple[str, bool | None]] = []
-            for key, label, lower_is_better, unit in (
-                ("mae", "MAE", True, "Wh"),
-                ("relative_error", "erreur relative médiane", True, "%"),
-                ("route_accuracy", "exactitude de routage", False, "%"),
+            for key, label, lower_is_better, unit, delta_unit in (
+                ("mae", "MAE", True, "Wh", "Wh"),
+                ("relative_error", "erreur relative médiane", True, "%", "point(s) de pourcentage"),
+                ("route_accuracy", "exactitude de routage", False, "%", "point(s) de pourcentage"),
             ):
                 old_value = baseline.get(key)
                 new_value = variant.get(key)
@@ -153,7 +153,7 @@ def display_evaluation_explanation(stdout: str) -> None:
                     improved = delta < 0 if lower_is_better else delta > 0
                     direction = "diminue" if delta < 0 else "augmente"
                     comparisons.append((
-                        f"{label} {direction} de {abs(delta):.2f} {unit} "
+                        f"{label} {direction} de {abs(delta):.2f} {delta_unit} "
                         f"({old_value:.2f} → {new_value:.2f} {unit})",
                         improved,
                     ))
@@ -163,7 +163,11 @@ def display_evaluation_explanation(stdout: str) -> None:
                 if not outcomes:
                     conclusion = "Les indicateurs sont identiques à ceux de V0.1 sur ce test."
                 elif all(outcomes):
-                    conclusion = "Les trois indicateurs vont dans le sens d'une meilleure reproduction de la référence."
+                    conclusion = (
+                        "Les trois indicateurs vont dans le sens d'une meilleure reproduction de la référence."
+                        if len(outcomes) == 3 else
+                        "Les indicateurs qui évoluent vont dans le sens d'une meilleure reproduction de la référence."
+                    )
                 elif not any(outcomes):
                     conclusion = "Aucun de ces indicateurs ne s'améliore par rapport à V0.1 sur ce test."
                 else:

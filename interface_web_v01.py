@@ -65,11 +65,7 @@ def display_result(arguments: tuple[str, ...], label: str) -> None:
 
 def _evaluation_sections(stdout: str) -> list[dict[str, object]]:
     """Extrait les métriques des sections d'évaluation imprimées par la CLI."""
-    headers = (
-        "BASELINE CompareAI —",
-        "V0.2 CompareAI —",
-        "HYBRIDE ML.ENERGY —",
-    )
+    headers = ("V0.2 CompareAI —",)
     raw_sections: list[tuple[str, list[str]]] = []
     current_header: str | None = None
     current_lines: list[str] = []
@@ -112,99 +108,34 @@ def _evaluation_sections(stdout: str) -> list[dict[str, object]]:
 
 
 def display_evaluation_explanation(stdout: str) -> None:
-    """Présente une lecture simple des métriques après l'évaluation."""
+    """Présente uniquement les résultats des modèles V0.2."""
     sections = _evaluation_sections(stdout)
-    st.markdown("### Comment lire ces résultats")
     st.write(
-        "Le test compare les estimations à la référence énergétique historique de CompareAI. "
-        "Il mesure la reproduction de cette référence, pas la consommation réelle d'un GPU."
+        "Le test évalue la reproduction de la référence énergétique estimée par CompareAI; "
+        "il ne mesure pas directement la consommation réelle d'un GPU ou d'une API."
     )
-
-    baseline = next(
-        (section for section in sections
-         if str(section["header"]).startswith("BASELINE CompareAI — V0.1 modèle × longueur")),
-        None,
-    )
-    variants = [
-        section for section in sections
-        if str(section["header"]).startswith("V0.2 CompareAI —")
-    ]
-
-    if baseline is not None and variants:
-        baseline_header = str(baseline["header"])
-        st.caption(f"Référence de comparaison : {baseline_header.split(' — ', 1)[1].split(' (', 1)[0]}.")
-        for variant in variants:
-            variant_header = str(variant["header"])
-            name = variant_header.split(" — ", 1)[1].split(" (", 1)[0]
-            comparisons: list[tuple[str, bool | None]] = []
-            for key, label, lower_is_better, unit, delta_unit in (
-                ("mae", "MAE", True, "Wh", "Wh"),
-                ("relative_error", "erreur relative médiane", True, "%", "point(s) de pourcentage"),
-                ("route_accuracy", "exactitude de routage", False, "%", "point(s) de pourcentage"),
-            ):
-                old_value = baseline.get(key)
-                new_value = variant.get(key)
-                if not isinstance(old_value, (int, float)) or not isinstance(new_value, (int, float)):
-                    continue
-                delta = float(new_value) - float(old_value)
-                if abs(delta) < 0.0001:
-                    comparisons.append((f"{label} inchangée ({old_value:.2f} {unit})", None))
-                else:
-                    improved = delta < 0 if lower_is_better else delta > 0
-                    direction = "diminue" if delta < 0 else "augmente"
-                    comparisons.append((
-                        f"{label} {direction} de {abs(delta):.2f} {delta_unit} "
-                        f"({old_value:.2f} → {new_value:.2f} {unit})",
-                        improved,
-                    ))
-
-            if comparisons:
-                outcomes = [outcome for _, outcome in comparisons if outcome is not None]
-                if not outcomes:
-                    conclusion = "Les indicateurs sont identiques à ceux de V0.1 sur ce test."
-                elif all(outcomes):
-                    conclusion = (
-                        "Les trois indicateurs vont dans le sens d'une meilleure reproduction de la référence."
-                        if len(outcomes) == 3 else
-                        "Les indicateurs qui évoluent vont dans le sens d'une meilleure reproduction de la référence."
-                    )
-                elif not any(outcomes):
-                    conclusion = "Aucun de ces indicateurs ne s'améliore par rapport à V0.1 sur ce test."
-                else:
-                    conclusion = "Le bilan est partagé : certaines mesures s'améliorent, d'autres se dégradent."
-                st.markdown(f"**{name}** : " + "; ".join(text for text, _ in comparisons) + ". " + conclusion)
-
-            if name.startswith("régression énergie") and variant.get("input_share") == 0:
-                st.caption(
-                    "La part d'énergie d'entrée estimée est nulle dans cette calibration CompareAI. "
-                    "Cela ne signifie pas que les tokens d'entrée ne consomment aucune énergie en réalité."
-                )
-            if name.startswith("loi de puissance") and variant.get("input_exponent") == 0:
-                st.caption(
-                    "L'exposant d'entrée positif vaut zéro ici : le test CompareAI ne montre pas "
-                    "de contribution d'entrée détectée par cette régression."
-                )
-
+    if sections:
+        st.markdown("### Résultats V0.2")
+        for section in sections:
+            st.markdown(f"**{section['header']}**")
+            st.text(
+                f"MAE : {section['mae'] if section['mae'] is not None else '—'} Wh\n"
+                f"Erreur relative médiane : {section['relative_error'] if section['relative_error'] is not None else '—'} %\n"
+                f"Exactitude de routage : {section['route_accuracy'] if section['route_accuracy'] is not None else '—'} %"
+            )
     st.markdown(
-        """
-        - **MAE (Wh)** : écart absolu moyen entre estimation et référence; plus bas est préférable.
-        - **Erreur relative médiane** : écart typique en pourcentage; plus bas est préférable.
-        - **Exactitude de routage** : part des paires où le modèle classé moins énergivore est aussi le moins énergivore dans la référence; plus haut est préférable. Ce n'est pas une mesure de qualité de réponse.
-        - **MAE de sortie (tokens)** : erreur moyenne sur la longueur de réponse prédite.
-        - **Couverture du filtre** : part des cas où au moins un modèle satisfait le seuil de qualité choisi. Les votes et réactions sont des préférences historiques, pas une garantie de qualité.
-        - **Accord avec le vote** : fréquence à laquelle le modèle retenu correspond au choix historique des utilisateurs. Le score qualité et le taux « égale/dépasse » résument, eux, les réactions observées.
-        - Dans l'écart énergétique du filtre de votes, une valeur positive signifie que le modèle retenu est moins énergivore que le choix historique; dans l'écart « routée − autre réponse » du filtre par réactions, une valeur négative signifie que le modèle retenu est moins énergivore.
-        """
+        "Les votes et réactions sont des préférences historiques subjectives; "
+        "ils ne garantissent pas la qualité future d'une réponse."
     )
 
 
 st.set_page_config(
-    page_title="Éco-routage des prompts — V0.2",
+    page_title="Éco-routage des prompts — V0.2.1",
     page_icon="🌿",
     layout="wide",
 )
 
-st.title("Éco-routage des prompts : V0.2 expérimentale")
+st.title("Éco-routage des prompts : V0.2.1")
 st.caption(
     "Prototype de recherche local : compare des estimations énergétiques et des retours historiques de qualité."
 )
@@ -221,16 +152,15 @@ with st.sidebar:
     )
     energy_model = st.radio(
         "Modèle énergétique",
-        options=("power-law", "input-output", "output-only"),
+        options=("power-law", "input-output"),
         format_func=lambda value: {
             "power-law": "V0.2 : loi de puissance entrée + sortie",
             "input-output": "V0.2 : régression additive entrée + sortie",
-            "output-only": "V0.1 : sortie seule",
         }[value],
         help="V0.2 modélise séparément l'effet des longueurs d'entrée et de sortie sur les facteurs CompareAI.",
     )
-    if energy_source == "mlenergy" and energy_model != "output-only":
-        st.caption("ML.ENERGY ne fournit ici qu'un facteur de sortie; le classement utilisera donc la sortie seule.")
+    if energy_source == "mlenergy":
+        st.caption("ML.ENERGY fournit des facteurs mesurés par token de sortie.")
     min_reactions = st.number_input(
         "Réactions minimales par modèle",
         min_value=1,
@@ -249,7 +179,7 @@ with st.sidebar:
     st.caption("Les données restent dans le dossier local du projet.")
 
 estimate_tab, evaluation_tab, method_tab = st.tabs(
-    ("Estimer un prompt", "Évaluer V0 / V0.1 / V0.2", "Méthode et limites")
+    ("Estimer un prompt", "Résultats V0.2", "Méthode et limites")
 )
 
 with estimate_tab:
@@ -288,14 +218,14 @@ with estimate_tab:
             )
 
 with evaluation_tab:
-    st.subheader("Évaluation V0 / V0.1 / V0.2 sur le split de test fixe")
+    st.subheader("Évaluation V0.2 sur le split de test fixe")
     st.write(
-        "L'évaluation compare les estimations à la référence CompareAI et affiche aussi "
-        "les résultats des filtres de qualité. Le split de paires est déterministe."
+        "L'évaluation présente les deux formulations V0.2 sur le split fixe de paires CompareAI. "
+        "Les résultats des filtres de qualité apparaissent également ci-dessous."
     )
     st.info(
         f"Source utilisée pour les classements de qualité : {energy_source}. "
-        "Les résultats de MAE affichent les variantes CompareAI et ML.ENERGY disponibles."
+        "Les métriques énergétiques ci-dessous portent sur les formulations V0.2 CompareAI."
     )
     if st.button("Lancer l'évaluation", type="primary"):
         display_result(("--eval", "--energy-source", energy_source,
@@ -311,12 +241,11 @@ with method_tab:
         - **CompareAI** fournit une référence énergétique estimée, pas une mesure directe de consommation GPU.
         - **ML.ENERGY** fournit des mesures GPU. Les configurations diffèrent et seulement 11 modèles sont reliés.
         - La longueur du prompt est approximée par `caractères / 4`.
-        - La variante V0.1 estime la longueur de sortie par modèle et tranche d'entrée quand il y a assez d'exemples de calibration.
-        - La V0.2 propose une loi de puissance et une régression additive qui modélisent séparément les longueurs d'entrée et de sortie; la V0.1 reste disponible comme référence.
-        - Sur le test CompareAI, la loi de puissance est à comparer à la baseline avant d'en tirer une conclusion; les coefficients restent des estimations, pas des mesures physiques.
+        - La V0.2 propose une loi de puissance et une régression additive qui modélisent séparément les longueurs d'entrée et de sortie.
+        - Les coefficients restent des estimations sur la référence CompareAI, pas des mesures physiques.
         - ML.ENERGY fournit ici un facteur de sortie mesuré; la composante d'entrée V0.2 n'est pas mélangée à cette source.
         - Les votes et réactions sont des retours historiques. Ils ne garantissent pas la qualité d'une réponse future.
-        - Les économies affichées sont des comparaisons avec les références disponibles, pas des économies physiques garanties.
+        - Les économies affichées sont des estimations sur les références disponibles, pas des économies physiques garanties.
         """
     )
 

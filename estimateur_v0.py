@@ -1,4 +1,4 @@
-"""Estimateur V0/V0.1/V0.2 d'éco-routage à partir du dataset local CompareAI.
+"""Estimateur V0.2.1 d'éco-routage à partir du dataset local CompareAI.
 
 Exemples :
   python estimateur_v0.py --eval
@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import math
+import os
 from pathlib import Path
 
 try:
@@ -25,14 +26,49 @@ except ImportError as exc:  # pragma: no cover - aide à l'installation
 
 
 ROOT = Path(__file__).resolve().parent
-PARQUET = ROOT / "source_données" / "compareAI" / "conversations.parquet"
+
+
+def resolve_compareai_dir() -> Path:
+    """Find local CompareAI data in the repo, a parent project folder, or an override."""
+    candidates = []
+    override = os.environ.get("COMPARIA_DATA_DIR")
+    if override:
+        candidates.append(Path(override).expanduser())
+    candidates.append(ROOT / "source_données" / "compareAI")
+    candidates.extend(
+        parent / "source_données" / "compareAI"
+        for parent in ROOT.parents
+    )
+
+    seen = set()
+    for candidate in candidates:
+        candidate = candidate.resolve()
+        if candidate not in seen:
+            seen.add(candidate)
+            if (candidate / "conversations.parquet").is_file():
+                return candidate
+    return candidates[0].resolve()
+
+
+COMPAREAI_DIR = resolve_compareai_dir()
+PARQUET = COMPAREAI_DIR / "conversations.parquet"
 MLENERGY_PARQUET = ROOT / "source_données" / "ml-energy-v3" / "runs" / "llm.parquet"
 MLENERGY_CROSSWALK = ROOT / "liens_modeles_compareai_ml_energy.csv"
 
 
+def compareai_file(name: str) -> Path:
+    path = COMPAREAI_DIR / name
+    if not path.is_file():
+        raise SystemExit(
+            f"Fichier CompareAI introuvable : {path}. "
+            "Placez-le avec les autres Parquet CompareAI ou définissez "
+            "COMPARIA_DATA_DIR vers leur dossier."
+        )
+    return path
+
+
 def load_rows() -> "duckdb.DuckDBPyRelation":
-    if not PARQUET.exists():
-        raise SystemExit(f"Fichier introuvable : {PARQUET}")
+    compareai_file("conversations.parquet")
     path = str(PARQUET).replace("'", "''")
     # Chaque paire est placée entièrement dans un seul split pour éviter
     # qu'une même requête se retrouve en calibration et en test.
@@ -399,7 +435,7 @@ def evaluate_powerlaw_energy(rows, factors, bucket_outputs, model_bucket_outputs
 
 
 def load_votes():
-    path = str(ROOT / "source_données" / "compareAI" / "votes.parquet").replace("'", "''")
+    path = str(compareai_file("votes.parquet")).replace("'", "''")
     return duckdb.sql(f"""
         SELECT conversation_pair_id, conv_turns, model_a_name, model_b_name,
                chosen_model_name, both_equal,
@@ -424,7 +460,7 @@ def fit_preference(votes, min_votes, threshold=0.55):
 
 
 def load_reactions():
-    path = str(ROOT / "source_données" / "compareAI" / "reactions.parquet").replace("'", "''")
+    path = str(compareai_file("reactions.parquet")).replace("'", "''")
     return duckdb.sql(f"""
         SELECT conversation_pair_id, refers_to_model, conv_turns,
                useful, complete, incorrect, superficial, instructions_not_followed,
@@ -575,15 +611,15 @@ def evaluate_quality_gate(rows, votes, factors, bucket_outputs, global_output_me
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Estimateur V0/V0.1/V0.2 énergie / éco-routage")
+    parser = argparse.ArgumentParser(description="Estimateur V0.2.1 énergie / éco-routage")
     parser.add_argument("--eval", action="store_true", help="évaluer sur le split test figé")
     parser.add_argument("--prompt", help="estimer l'énergie pour ce prompt")
     parser.add_argument("--top", type=int, default=5, help="nombre de modèles à afficher")
     parser.add_argument("--energy-source", choices=("compareai", "mlenergy"), default="compareai",
                         help="source des facteurs énergie pour la recommandation (défaut : compareai)")
-    parser.add_argument("--energy-model", choices=("power-law", "input-output", "output-only"),
+    parser.add_argument("--energy-model", choices=("power-law", "input-output"),
                         default="power-law",
-                        help="modèle CompareAI : puissance entrée/sortie, régression additive, ou sortie seule")
+                        help="modèle V0.2 CompareAI : puissance ou régression additive entrée/sortie")
     parser.add_argument("--min-observations", type=int, default=100,
                         help="minimum de réponses de calibration par modèle")
     parser.add_argument("--min-model-bucket-observations", type=int, default=100,
@@ -631,24 +667,12 @@ def main():
     print(f"alpha moyen calibre : {alpha:.3f} token de sortie / token d'entree")
     print(f"Source active pour la recommandation : {args.energy_source}")
     if args.eval:
-        baseline_results = evaluate(rows, alpha, compareai_factors, bucket_outputs,
-                                     model_bucket_outputs, global_output_median)
-        print("\nÉVALUATION HOLD-OUT (20 %, paires jamais vues en calibration)")
-        for name, result in baseline_results.items():
-            print(f"\nBASELINE CompareAI — {name} ({result['n_test']:,} réponses test)")
-            print(f"MAE                 : {result['mae_wh']:.4f} Wh")
-            print(f"Erreur relative méd. : {result['median_ape_pct']:.1f} %")
-            print(f"MAE sortie estimée  : {result['output_mae_tokens']:.1f} tokens")
-            print(f"Erreur méd. sortie  : {result['output_median_ape_pct']:.1f} %")
-            print(f"Ratio médiane préd/réf. : {result['median_pred_ref_ratio']:.2f}")
-            print(f"Accuracy routage     : {result['route_accuracy']:.1%} ({result['route_pairs']:,} paires)")
-            if "model_bucket_coverage_pct" in result:
-                print(f"Couverture modèle × tranche : {result['model_bucket_coverage_pct']:.1%}")
+        print("\nRÉSULTATS V0.2 — HOLD-OUT FIXE (20 %, paires jamais vues en calibration)")
         v02 = evaluate_input_output_energy(
             rows, compareai_factors, bucket_outputs, model_bucket_outputs,
             global_output_median, input_output_terms
         )
-        print(f"\nV0.2 CompareAI — régression énergie entrée + sortie ({v02['n_test']:,} réponses test)")
+        print(f"\nV0.2 CompareAI — régression additive entrée + sortie ({v02['n_test']:,} réponses test)")
         print(f"MAE énergie         : {v02['mae_wh']:.4f} Wh")
         print(f"Erreur relative méd. : {v02['median_ape_pct']:.1f} %")
         print(f"Accuracy routage     : {v02['route_accuracy']:.1%} ({v02['route_pairs']:,} paires)")
@@ -664,19 +688,6 @@ def main():
         print(f"Accuracy routage     : {power['route_accuracy']:.1%} ({power['route_pairs']:,} paires)")
         print(f"Modèles avec exposants ajustés : {power['models_with_power_terms']}")
         print(f"Exposant médian d'entrée positif : {power['median_input_exponent']:.3f}")
-        if mlenergy_stats is not None:
-            injected_results = evaluate(rows, alpha, mlenergy_factors, bucket_outputs,
-                                        model_bucket_outputs, global_output_median)
-            for name, result in injected_results.items():
-                print(f"\nHYBRIDE ML.ENERGY — {name} ({result['n_test']:,} réponses test)")
-                print(f"MAE                 : {result['mae_wh']:.4f} Wh")
-                print(f"Erreur relative méd. : {result['median_ape_pct']:.1f} %")
-                print(f"MAE sortie estimée  : {result['output_mae_tokens']:.1f} tokens")
-                print(f"Erreur méd. sortie  : {result['output_median_ape_pct']:.1f} %")
-                print(f"Ratio médiane préd/réf. : {result['median_pred_ref_ratio']:.2f}")
-                print(f"Accuracy routage     : {result['route_accuracy']:.1%} ({result['route_pairs']:,} paires)")
-                if "model_bucket_coverage_pct" in result:
-                    print(f"Couverture modèle × tranche : {result['model_bucket_coverage_pct']:.1%}")
         cold = leave_one_model_out_size_check(reg_data)
         if cold:
             print(f"\nTest fallback paramètres (leave-one-model-out, {cold[2]} modèles)")

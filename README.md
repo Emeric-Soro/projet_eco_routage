@@ -1,23 +1,32 @@
-# Éco-routage des prompts — paquet collaborateurs V0.2
+# Éco-routage des prompts — V0.2.1
 
-Ce paquet permet à chaque collaborateur de lancer le prototype sur son poste et contient une démo web autonome. Le détail de la méthode, des variantes et des limites se trouve dans [`README_estimateur_v0.md`](README_estimateur_v0.md).
+Cette version présente les résultats et les outils de la V0.2. Elle n'affiche pas de comparaison avec les versions antérieures.
 
-## Ce que fait V0.2
+À partir d'un prompt, le prototype approxime les tokens d'entrée par le nombre de caractères divisé par quatre, prédit les tokens de réponse depuis l'historique CompareAI, estime l'énergie et classe les modèles. Il peut appliquer un filtre basé sur les réactions historiques. Il ne génère pas de réponse, n'appelle aucune API et ne mesure pas directement le GPU.
 
-À partir d'un prompt, le prototype approxime ses tokens d'entrée par le nombre de caractères divisé par quatre, prédit les tokens de réponse avec l'historique CompareAI, estime l'énergie et classe les modèles. Il peut utiliser des réactions historiques comme filtre de qualité. Il **ne génère aucune réponse**, ne contacte aucune API et ne mesure pas directement le GPU.
+La V0.2 propose deux modèles énergétiques : une régression additive et une loi de puissance, tous deux ajustés sur l'entrée et la sortie. Les résultats CompareAI sont des estimations de référence. Les mesures ML.ENERGY et SweetSpot décrivent des configurations matérielles particulières.
 
-Le choix initial CompareAI est la loi de puissance V0.2 : elle ajuste l'énergie selon la longueur d'entrée et la longueur de sortie. La variante additive V0.2 et la baseline V0.1 « sortie seule » sont aussi disponibles dans l'interface. La V0.2 est expérimentale : elle n'améliore pas actuellement les métriques du hold-out CompareAI. Les mesures SweetSpot/H100 sont un contrôle indépendant, spécifique à cette configuration.
+## Résultats V0.2
 
-### Démo web publique
+Sur le hold-out CompareAI, la régression additive et la loi de puissance donnent chacune une MAE de **1,0084 Wh**, une erreur relative médiane de **38,9 %** et une exactitude de routage de **90,6 %**. La part médiane attribuée à l'entrée par la régression additive et l'exposant médian d'entrée de la loi de puissance valent **0** dans cette calibration. Cela décrit le signal détecté dans la référence CompareAI; ce n'est pas une mesure de la consommation physique des tokens d'entrée.
 
-`demo_en_ligne.py` est une petite démo autonome destinée à Streamlit Community Cloud. Elle utilise uniquement les mesures SweetSpot incluses et compare 13 modèles mesurés sur H100/TensorRT-LLM. Pour éviter d'envoyer le texte de prompts à l'application hébergée, elle demande les longueurs estimées en tokens, pas le texte lui-même. Elle n'a besoin ni des fichiers CompareAI ni des réactions/votes. Cette démo énergétique n'inclut pas le filtre qualité de la version locale.
+Sur les grilles contrôlées SweetSpot/H100, les résultats V0.2 dépendent du modèle et de la configuration. Ils sont enregistrés dans `source_données/sweetspot_llm_energy/validation_v02_resultats.csv`. Ces mesures décrivent H100 avec TensorRT-LLM et ne représentent pas directement les API cloud.
 
-Après publication de ce dépôt sur GitHub, ouvrir [Streamlit Community Cloud](https://share.streamlit.io), choisir **Create app**, puis sélectionner ce dépôt, la branche `main` et le fichier `demo_en_ligne.py`. Garder Python 3.12 dans les paramètres avancés si le choix est proposé, puis déployer. Streamlit attribue un lien `*.streamlit.app`; la configuration publique sera ajoutée ici une fois créée.
+## Contenu ComparIA
 
-## Préparation (Windows / PowerShell)
+Le dossier `ComparIA` comprend le notebook d'analyse et son résumé PDF. Les trois fichiers de données CompareAI (`conversations.parquet`, `reactions.parquet`, `votes.parquet`) ne sont pas dans ce dépôt : ils représentent environ 4,4 Go. GitHub bloque les fichiers de plus de 100 MiB dans Git ordinaire. Git LFS autorise des fichiers jusqu'à 2 Go avec les offres Free/Pro et 4 Go avec Team; `conversations.parquet` (2,63 Go) nécessite donc une offre compatible, en plus du quota de stockage LFS. Obtenez les données depuis l'espace autorisé de l'équipe ou son stockage partagé et placez-les ici :
 
-1. Extraire l'archive et ouvrir PowerShell dans le dossier `V0.2_partage`.
-2. Installer Python 3.12 (64 bits), puis créer l'environnement et installer les dépendances :
+```text
+source_données/compareAI/conversations.parquet
+source_données/compareAI/reactions.parquet
+source_données/compareAI/votes.parquet
+```
+
+L'estimateur recherche aussi automatiquement un dossier `source_données/compareAI` dans les dossiers parents du dépôt. Pour indiquer un autre emplacement, définir la variable d'environnement `COMPARIA_DATA_DIR` vers le dossier contenant les trois Parquet.
+
+## Installation (Windows / PowerShell)
+
+Python 3.12 (64 bits) est requis. Depuis le dossier du dépôt :
 
 ```powershell
 py -3.12 -m venv .venv
@@ -25,41 +34,26 @@ py -3.12 -m venv .venv
 & '.\.venv\Scripts\python.exe' -m pip install -r '.\requirements.txt'
 ```
 
-3. Obtenir les données CompareAI via une source ou un espace de partage autorisé. Elles ne sont pas incluses dans le ZIP (environ 4,4 Go dans la copie de travail). Placer les fichiers ainsi :
-
-```text
-source_données\compareAI\conversations.parquet
-source_données\compareAI\reactions.parquet
-source_données\compareAI\votes.parquet
-```
-
-Sans `conversations.parquet`, l'estimation et l'évaluation ne peuvent pas démarrer. L'interface utilise aussi `reactions.parquet`; `--eval` lit `votes.parquet`.
-
-## Lancer l'application web locale
+Lancer l'interface locale :
 
 ```powershell
 & '.\.venv\Scripts\python.exe' -m streamlit run '.\interface_web_v01.py' --server.address 127.0.0.1
 ```
 
-Ouvrir `http://localhost:8501`. Dans la barre latérale, choisir CompareAI ou ML.ENERGY et le modèle énergétique. Saisir le prompt dans **Estimer un prompt**, puis cliquer **Estimer et classer les modèles**. L'onglet d'évaluation lance les variantes sur le split test fixe. `Ctrl+C` dans PowerShell arrête l'application.
-
-Cette adresse est locale au poste : pour que l'équipe utilise une seule application partagée, il faut déployer le projet sur un serveur approuvé, avec les droits adéquats pour les données CompareAI. Le ZIP ne crée pas de serveur public.
-
-## Commandes utiles
+L'interface est accessible sur `http://localhost:8501`. Pour une estimation en ligne de commande :
 
 ```powershell
-# Évaluer V0, V0.1 et V0.2 sur le split de test
-& '.\.venv\Scripts\python.exe' '.\estimateur_v0.py' --eval
-
-# Estimer et classer un prompt (CompareAI, V0.2 loi de puissance par défaut)
 & '.\.venv\Scripts\python.exe' '.\estimateur_v0.py' --prompt 'Résume la sobriété numérique en trois points.'
-
-# Comparer aux variantes additive ou V0.1 sortie seule
-& '.\.venv\Scripts\python.exe' '.\estimateur_v0.py' --prompt 'Résume la sobriété numérique en trois points.' --energy-model input-output
-& '.\.venv\Scripts\python.exe' '.\estimateur_v0.py' --prompt 'Résume la sobriété numérique en trois points.' --energy-model output-only
-
-# Audit des modèles SweetSpot rapprochés et validation sur leurs grilles mesurées
-& '.\.venv\Scripts\python.exe' '.\validation_sweetspot_v02.py'
 ```
 
-Le jeu léger ML.ENERGY et l'archive SweetSpot sont inclus; leurs sources, licences et limites sont documentées dans `source_données`. Les données CompareAI sont à obtenir et partager séparément selon les règles de l'équipe.
+Évaluer les deux formulations V0.2 sur le split fixe :
+
+```powershell
+& '.\.venv\Scripts\python.exe' '.\estimateur_v0.py' --eval
+```
+
+## Démo publique autonome
+
+`demo_en_ligne.py` utilise uniquement les mesures SweetSpot incluses; elle demande des longueurs en tokens et n'a besoin ni des fichiers CompareAI ni du texte du prompt. Après publication du dépôt sur GitHub, ouvrir [Streamlit Community Cloud](https://share.streamlit.io), créer une application depuis ce dépôt, choisir la branche `main` et le fichier `demo_en_ligne.py`, puis déployer.
+
+Voir [README_estimateur_v0.md](README_estimateur_v0.md) pour la méthode et les limites, et [ComparIA/README.md](ComparIA/README.md) pour les fichiers d'analyse.

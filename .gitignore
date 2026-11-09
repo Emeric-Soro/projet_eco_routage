@@ -4,4 +4,23 @@ __pycache__/
 .env
 .env.*
 .streamlit/secrets.toml
+
+.Python
+.DS_Store
+*.log
+
+# Données volumineuses (à obtenir séparément)
 source_données/compareAI/
+source_données/externe_hf/
+source_données/opendatasoft/
+source_données/sweetspot_llm_energy/
+source_données/ml-energy-v3/
+
+# Caches / artefacts locaux
+.pytest_cache/
+.ipynb_checkpoints/
+*.parquet.bak
+
+# Cache privé régénérable du moteur
+.cache/
+

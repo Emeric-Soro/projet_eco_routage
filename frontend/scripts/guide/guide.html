@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>Guide d'utilisation — Éco-routage V0.2</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Manrope:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" />
+<style>
+  @page { size: A4; margin: 18mm 17mm 20mm; }
+  @page :first { margin: 0; }
+  :root { --green:#1c362b; --green-2:#284637; --leaf:#37784d; --terra:#d88961; --terra-dark:#b8653e; --paper:#f6f6ef; --sand:#f1f0e9; --mint:#e5ebe1; --line:#d6dfd2; --ink:#233f33; --muted:#6f8573; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font: 400 10.4pt/1.62 "Manrope", sans-serif; color: var(--ink); background: #fff; }
+  h1, h2, h3 { font-family: "Sora", sans-serif; color: var(--green); letter-spacing: -.02em; }
+  h2 { font-size: 21pt; font-weight: 700; line-height: 1.15; margin: 0 0 4mm; }
+  h3 { font-size: 12.5pt; font-weight: 600; margin: 6mm 0 2mm; break-after: avoid; }
+  h2, .eyebrow, .lead { break-after: avoid; }
+  p { margin: 0 0 3mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 5mm; }
+  li { margin-bottom: 1.2mm; }
+  strong { font-weight: 700; color: var(--green); }
+  code, .mono { font-family: "Geist Mono", monospace; font-size: .88em; }
+  code { background: var(--mint); padding: .4mm 1.4mm; border-radius: 1mm; color: var(--green); }
+  .accent { color: var(--terra-dark); }
+
+  .cover { height: 297mm; background: var(--green); color: #f1efe5; padding: 26mm 22mm 20mm; display: flex; flex-direction: column; page-break-after: always; position: relative; overflow: hidden; }
+  .cover::after { content: ""; position: absolute; right: -40mm; bottom: -40mm; width: 150mm; height: 150mm; border-radius: 50%; border: 1px solid #ffffff1a; box-shadow: 0 0 0 18mm #ffffff08, 0 0 0 40mm #ffffff05; }
+  .brand { display: flex; align-items: center; gap: 4mm; font: 800 17pt "Sora", sans-serif; letter-spacing: -.03em; }
+  .brand-dot { width: 11mm; height: 11mm; border-radius: 50%; background: #f1efe5; color: var(--green); display: grid; place-items: center; }
+  .brand .slash { color: var(--terra); }
+  .cover-kicker { margin-top: auto; font: 500 9pt "Geist Mono", monospace; letter-spacing: .18em; color: #a8c5aa; text-transform: uppercase; }
+  .cover h1 { font-size: 44pt; line-height: 1.02; margin: 6mm 0 6mm; color: #f6f4ea; font-weight: 700; }
+  .cover h1 span { color: #e4ab89; }
+  .cover-lead { font-size: 12.5pt; color: #c6d6c6; max-width: 135mm; line-height: 1.6; }
+  .cover-meta { display: flex; gap: 10mm; margin-top: 16mm; padding-top: 6mm; border-top: 1px solid #41604b; font: 400 8.5pt "Geist Mono", monospace; color: #93ad98; letter-spacing: .06em; text-transform: uppercase; }
+  .cover-meta b { display: block; color: #e6ebe1; font-weight: 500; margin-top: 1mm; }
+
+  .section { page-break-before: always; }
+  .eyebrow { display: block; font: 500 8.2pt "Geist Mono", monospace; letter-spacing: .16em; text-transform: uppercase; color: var(--terra-dark); margin-bottom: 2.5mm; }
+  .lead { font-size: 11.2pt; color: #4b6552; margin-bottom: 5mm; }
+
+  .toc { list-style: none; padding: 0; margin: 4mm 0 0; counter-reset: toc; }
+  .toc li { display: flex; align-items: baseline; gap: 4mm; padding: 3.2mm 0; border-bottom: 1px solid var(--line); margin: 0; }
+  .toc .num { font: 500 9pt "Geist Mono", monospace; color: var(--terra-dark); width: 9mm; }
+  .toc .title { font: 600 11.5pt "Sora", sans-serif; color: var(--green); }
+  .toc .desc { color: var(--muted); font-size: 9.4pt; margin-left: auto; text-align: right; max-width: 80mm; }
+
+  .shot { margin: 4mm 0 5mm; border: 1px solid var(--line); background: var(--sand); padding: 2.5mm; break-inside: avoid; }
+  .shot img { display: block; width: 100%; height: auto; }
+  .shot figcaption { font: 400 8pt "Geist Mono", monospace; color: var(--muted); letter-spacing: .03em; padding: 2.4mm 1mm 0; }
+  .shot.narrow { width: 62%; margin-left: auto; margin-right: auto; }
+  .shot.mid { width: 80%; margin-left: auto; margin-right: auto; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; align-items: start; }
+  .split > .shot { margin-top: 0; }
+
+  .steps { list-style: none; padding: 0; margin: 3mm 0 4mm; counter-reset: step; }
+  .steps > li { position: relative; padding: 0 0 3.6mm 11mm; margin: 0; counter-increment: step; break-inside: avoid; }
+  .steps > li::before { content: counter(step, decimal-leading-zero); position: absolute; left: 0; top: .2mm; font: 600 8.5pt "Geist Mono", monospace; color: #fff; background: var(--green); width: 7.5mm; height: 7.5mm; border-radius: 50%; display: grid; place-items: center; }
+  .steps > li strong { display: block; margin-bottom: .5mm; }
+
+  table { width: 100%; border-collapse: collapse; margin: 3mm 0 5mm; font-size: 9.3pt; break-inside: avoid; }
+  th { text-align: left; font: 500 7.8pt "Geist Mono", monospace; letter-spacing: .1em; text-transform: uppercase; color: #f1efe5; background: var(--green); padding: 2.4mm 3mm; }
+  td { padding: 2.6mm 3mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:nth-child(even) td { background: #f8f8f3; }
+  td:first-child { font-weight: 600; color: var(--green); }
+
+  .callout { border-left: 3px solid var(--terra); background: #f6ebe3; padding: 3.5mm 4.5mm; margin: 4mm 0; break-inside: avoid; }
+  .callout.info { border-left-color: var(--leaf); background: var(--mint); }
+  .callout .label { display: block; font: 600 7.8pt "Geist Mono", monospace; letter-spacing: .14em; text-transform: uppercase; color: var(--terra-dark); margin-bottom: 1.2mm; }
+  .callout.info .label { color: var(--leaf); }
+  .callout p:last-child { margin-bottom: 0; }
+
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; margin: 4mm 0 5mm; }
+  .card { border: 1px solid var(--line); background: var(--paper); padding: 4mm; break-inside: avoid; }
+  .card .k { font: 500 7.6pt "Geist Mono", monospace; letter-spacing: .12em; color: var(--muted); text-transform: uppercase; }
+  .card .v { font: 700 11.5pt "Sora", sans-serif; color: var(--green); margin: 1.5mm 0 1mm; }
+  .card p { font-size: 9pt; color: #587060; margin: 0; }
+
+  pre { font: 400 8.6pt/1.55 "Geist Mono", monospace; background: var(--green); color: #e6ebe1; padding: 3.5mm 4.5mm; margin: 2mm 0 4mm; white-space: pre-wrap; break-inside: avoid; }
+  pre .c { color: #8fb093; }
+
+  dl.glossary { display: grid; grid-template-columns: 38mm 1fr; gap: 0; margin: 2mm 0; }
+  dl.glossary dt, dl.glossary dd { padding: 2.6mm 0; border-bottom: 1px solid var(--line); margin: 0; }
+  dl.glossary dt { font: 600 10pt "Sora", sans-serif; color: var(--green); }
+  dl.glossary dd { font-size: 9.6pt; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="brand"><span class="brand-dot">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+  </span><span>éco<span class="slash">/</span>routage</span></div>
+  <div class="cover-kicker">Guide d'utilisation · Mode d'emploi</div>
+  <h1>Prendre en main<br/><span>la plateforme.</span></h1>
+  <p class="cover-lead">Tout ce qu'il faut savoir pour estimer l'énergie d'un prompt, comparer les modèles de langage et choisir le plus sobre — en quelques minutes.</p>
+  <div class="cover-meta">
+    <div>Version<b>V0.2 · prototype</b></div>
+    <div>Public<b>Utilisateurs de la plateforme</b></div>
+    <div>Durée de lecture<b>≈ 10 minutes</b></div>
+  </div>
+</section>
+
+<section>
+  <span class="eyebrow">Sommaire</span>
+  <h2>Ce que contient ce guide</h2>
+  <ol class="toc">
+    <li><span class="num">01</span><span class="title">Découvrir la plateforme</span><span class="desc">À quoi elle sert, ce qu'elle ne fait pas</span></li>
+    <li><span class="num">02</span><span class="title">Démarrer</span><span class="desc">Lancer le moteur et ouvrir l'interface</span></li>
+    <li><span class="num">03</span><span class="title">Se repérer dans l'écran</span><span class="desc">Les deux colonnes et l'en-tête</span></li>
+    <li><span class="num">04</span><span class="title">Lancer une estimation</span><span class="desc">Prompt, source, méthode, filtre de qualité</span></li>
+    <li><span class="num">05</span><span class="title">Lire les résultats</span><span class="desc">Synthèse, compromis, classement</span></li>
+    <li><span class="num">06</span><span class="title">Comparer deux modèles</span><span class="desc">Le face-à-face et son enregistrement</span></li>
+    <li><span class="num">07</span><span class="title">Historique et confidentialité</span><span class="desc">Retrouver, conserver ou effacer ses analyses</span></li>
+    <li><span class="num">08</span><span class="title">Exporter et documenter</span><span class="desc">CSV et documentation intégrée</span></li>
+    <li><span class="num">09</span><span class="title">Dépannage</span><span class="desc">Messages d'état et solutions</span></li>
+    <li><span class="num">10</span><span class="title">Bonnes pratiques et glossaire</span><span class="desc">Bien interpréter, vocabulaire clé</span></li>
+  </ol>
+
+  <div class="callout info" style="margin-top:9mm">
+    <span class="label">En 30 secondes</span>
+    <p>Écrivez votre prompt dans le panneau vert à droite, cliquez sur <strong>Lancer l'estimation</strong>, puis lisez à gauche le <strong>modèle conseillé</strong> et son <strong>énergie estimée</strong> en Wh. Comparez ensuite deux modèles dans le <strong>face-à-face</strong> et retrouvez tout dans <strong>Historique</strong>.</p>
+  </div>
+</section>
+
+<section class="section">
+  <span class="eyebrow">01 · Découvrir</span>
+  <h2>À quoi sert Éco-routage&nbsp;?</h2>
+  <p class="lead">Éco-routage estime l'énergie qu'une requête consommerait selon le modèle de langage utilisé, puis classe les modèles du plus sobre au plus énergivore. L'objectif&nbsp;: orienter chaque prompt vers un modèle adapté et économe.</p>
+
+  <div class="cards">
+    <div class="card"><span class="k">Entrée</span><div class="v">Votre prompt</div><p>Le texte que vous enverriez à une IA, jusqu'à 4&nbsp;000 caractères.</p></div>
+    <div class="card"><span class="k">Calcul</span><div class="v">Une estimation</div><p>Tokens d'entrée, longueur de réponse prédite, énergie par modèle.</p></div>
+    <div class="card"><span class="k">Sortie</span><div class="v">Un classement</div><p>Le modèle conseillé, son énergie en Wh et les alternatives.</p></div>
+  </div>
+
+  <h3>Ce que la plateforme ne fait pas</h3>
+  <ul>
+    <li><strong>Elle ne génère aucune réponse.</strong> Aucun modèle d'IA n'est interrogé&nbsp;; aucune API externe n'est appelée.</li>
+    <li><strong>Elle ne mesure pas l'énergie en direct.</strong> Les chiffres sont des estimations issues de données historiques (CompareAI) ou de mesures GPU de référence (ML.ENERGY).</li>
+    <li><strong>Elle ne juge pas la qualité d'une future réponse.</strong> Le filtre de qualité repose sur des réactions passées d'utilisateurs, pas sur une garantie.</li>
+  </ul>
+
+  <div class="callout">
+    <span class="label">Confidentialité</span>
+    <p>Votre prompt reste dans votre environnement local. Il est transmis uniquement au moteur de calcul qui tourne sur votre machine.</p>
+  </div>
+
+</section>
+
+<section class="section">
+  <span class="eyebrow">02 · Démarrer</span>
+  <h2>Lancer la plateforme</h2>
+  <p>La plateforme se compose de deux éléments à démarrer&nbsp;: le <strong>moteur de calcul</strong> (API Python) et l'<strong>interface</strong> (application web). Dans le dossier <code>V0.2_partage</code>&nbsp;:</p>
+<pre><span class="c"># 1. Moteur de calcul (terminal n°1)</span>
+python -m uvicorn api.main:app --reload --port 8000
+
+<span class="c"># 2. Interface (terminal n°2)</span>
+cd frontend
+npm run dev</pre>
+  <p>Ouvrez ensuite <code>http://localhost:5173</code> dans votre navigateur. Sous le formulaire, le voyant doit afficher <strong>«&nbsp;Moteur disponible — calcul sur données locales.&nbsp;»</strong></p>
+  <div class="callout info">
+    <span class="label">Prérequis</span>
+    <p>Les fichiers CompareAI (<code>conversations.parquet</code> et <code>reactions.parquet</code>) doivent être présents dans <code>source_données/compareAI/</code>. Sans eux, le calcul reste désactivé et la plateforme vous l'indique.</p>
+  </div>
+  <h3>Arrêter la plateforme</h3>
+  <p>Dans chacun des deux terminaux, appuyez sur <code>Ctrl</code>&nbsp;+&nbsp;<code>C</code>. Vos analyses en mode privé sont alors perdues&nbsp;; celles conservées sur l'appareil restent disponibles au prochain lancement.</p>
+</section>
+
+<section class="section">
+  <span class="eyebrow">03 · Se repérer</span>
+  <h2>L'écran en un coup d'œil</h2>
+  <p class="lead">L'interface est organisée en deux colonnes&nbsp;: à <strong>droite</strong>, vous posez la question&nbsp;; à <strong>gauche</strong>, vous lisez la réponse du moteur.</p>
+  <figure class="shot"><img src="screens/01-accueil.png" alt="Écran d'accueil" /><figcaption>FIG. 1 — Écran d'accueil, avant toute analyse.</figcaption></figure>
+
+  <table>
+    <tr><th style="width:32%">Zone</th><th>Rôle</th></tr>
+    <tr><td>En-tête</td><td>Logo (retour en haut de page), bouton <strong>Historique</strong> avec le nombre d'analyses, bouton <strong>Documentation</strong>.</td></tr>
+    <tr><td>Colonne gauche</td><td>Résultats&nbsp;: synthèse en trois cartes, compromis énergie / recommandation, classement complet et comparateur. Avant le premier calcul, elle affiche «&nbsp;Aucune analyse en cours&nbsp;».</td></tr>
+    <tr><td>Colonne droite (verte)</td><td>Votre espace d'expérimentation&nbsp;: saisie du prompt, choix des données et de la méthode, filtre de qualité, bouton de lancement et état du moteur.</td></tr>
+  </table>
+  <p>Sur un écran étroit (téléphone, fenêtre réduite), le formulaire passe au-dessus des résultats.</p>
+</section>
+
+<section class="section">
+  <span class="eyebrow">04 · Estimer</span>
+  <h2>Lancer une estimation, pas à pas</h2>
+  <div class="split">
+    <div>
+      <ol class="steps">
+        <li><strong>Saisir le prompt</strong>Rédigez la demande telle que vous l'enverriez à une IA. Le compteur indique le nombre de caractères (4&nbsp;000 max.) et une approximation des tokens (≈&nbsp;caractères&nbsp;÷&nbsp;4).</li>
+        <li><strong>Choisir les données de référence</strong><b>CompareAI</b> (par défaut) couvre tout le catalogue de modèles. <b>ML.ENERGY</b> s'appuie sur des mesures GPU, pour un nombre restreint de modèles.</li>
+        <li><strong>Choisir le modèle de calcul</strong>Laissez <b>V0.2 · Loi de puissance</b> si vous hésitez. Avec ML.ENERGY, la méthode «&nbsp;sortie seule&nbsp;» est imposée.</li>
+        <li><strong>Affiner le filtre de qualité <span class="accent">(optionnel)</span></strong>Ouvrez la section pour ajuster les critères de recommandation (voir page suivante).</li>
+        <li><strong>Lancer l'estimation</strong>Le bouton devient actif dès que le moteur est disponible et que le prompt n'est pas vide. Pendant le calcul, <b>Annuler l'attente</b> permet d'interrompre.</li>
+      </ol>
+      <div class="callout">
+        <span class="label">Premier calcul</span>
+        <p>La première estimation peut prendre plus de temps&nbsp;: le moteur lit et calibre les données. Les suivantes sont plus rapides.</p>
+      </div>
+    </div>
+    <figure class="shot"><img src="screens/02-formulaire.png" alt="Formulaire" /><figcaption>FIG. 2 — Le formulaire rempli.</figcaption></figure>
+  </div>
+</section>
+
+<section class="section">
+  <span class="eyebrow">04 · Estimer — options</span>
+  <h2>Bien choisir ses réglages</h2>
+
+  <h3>Données de référence</h3>
+  <table>
+    <tr><th style="width:24%">Source</th><th>Ce qu'elle apporte</th><th style="width:30%">Quand la choisir</th></tr>
+    <tr><td>CompareAI</td><td>Référence énergétique estimée à partir de l'historique de conversations&nbsp;; couvre le plus grand nombre de modèles.</td><td>Par défaut, pour comparer largement.</td></tr>
+    <tr><td>ML.ENERGY</td><td>Facteurs issus de mesures GPU réelles (médiane de plusieurs configurations)&nbsp;; affiche aussi la dispersion P10–P90.</td><td>Pour un point de vue «&nbsp;mesuré&nbsp;» sur les modèles couverts.</td></tr>
+  </table>
+
+  <h3>Modèle de calcul</h3>
+  <table>
+    <tr><th style="width:34%">Méthode</th><th>Principe</th></tr>
+    <tr><td>V0.2 · Loi de puissance</td><td>Méthode par défaut. L'énergie dépend à la fois de la longueur du prompt et de la longueur de réponse prédite, de façon non linéaire.</td></tr>
+    <tr><td>V0.2 · Régression additive</td><td>Additionne une base par requête, une part liée à l'entrée et une part liée à la sortie. Le détail de chaque part est visible dans le classement.</td></tr>
+    <tr><td>V0.1 · Sortie seule</td><td>Version de référence&nbsp;: facteur énergétique × nombre de tokens de sortie estimés.</td></tr>
+  </table>
+
+  <h3>Filtre de qualité</h3>
+  <figure class="shot mid"><img src="screens/02b-filtre.png" alt="Filtre de qualité" /><figcaption>FIG. 3 — Section «&nbsp;Affiner le filtre de qualité&nbsp;».</figcaption></figure>
+  <ul>
+    <li><strong>Réactions historiques minimales</strong> (100 par défaut)&nbsp;: un modèle doit avoir reçu au moins ce nombre de réactions d'utilisateurs pour pouvoir être recommandé.</li>
+    <li><strong>Seuil de score de réactions</strong> (65&nbsp;% par défaut)&nbsp;: part minimale de réactions positives exigée.</li>
+  </ul>
+  <p>Plus le filtre est strict, plus la recommandation privilégie des modèles appréciés… quitte à s'éloigner du minimum énergétique. Le compromis est affiché clairement dans les résultats.</p>
+</section>
+
+<section class="section">
+  <span class="eyebrow">05 · Lire les résultats</span>
+  <h2>Comprendre ce que dit le moteur</h2>
+
+  <h3>La synthèse</h3>
+  <figure class="shot"><img src="screens/03-synthese.png" alt="Synthèse" /><figcaption>FIG. 4 — Les trois cartes de synthèse.</figcaption></figure>
+  <ul>
+    <li><strong>Modèle conseillé</strong>&nbsp;: le plus sobre parmi les modèles qui passent le filtre de qualité. La mention indique si le filtre a été appliqué.</li>
+    <li><strong>Énergie estimée</strong>&nbsp;: énergie de ce modèle pour votre requête, en wattheures (Wh). C'est une estimation, pas une mesure GPU.</li>
+    <li><strong>Modèles évalués</strong>&nbsp;: nombre total de modèles pris en compte dans le calcul.</li>
+  </ul>
+
+  <h3>Le compromis à connaître</h3>
+  <figure class="shot"><img src="screens/04-compromis.png" alt="Compromis" /><figcaption>FIG. 5 — Minimum énergétique (A) face à la recommandation (B).</figcaption></figure>
+  <p>Ce bloc confronte le <strong>minimum énergétique absolu</strong> (A) et le <strong>modèle recommandé</strong> (B). S'ils diffèrent, le surcoût est donné en Wh et en pourcentage&nbsp;: c'est le «&nbsp;prix&nbsp;» énergétique du filtre de qualité. S'ils coïncident, la recommandation est aussi la plus sobre.</p>
+</section>
+
+<section class="section">
+  <span class="eyebrow">05 · Lire les résultats — classement</span>
+  <h2>Tous les chemins, un seul tableau</h2>
+  <div class="split">
+    <figure class="shot"><img src="screens/05-classement.png" alt="Classement" /><figcaption>FIG. 6 — Classement, avec le détail d'un modèle ouvert.</figcaption></figure>
+    <div>
+      <p>Le classement liste les modèles les plus sobres du calcul, avec leur énergie estimée.</p>
+      <ul>
+        <li><strong>Barres</strong>&nbsp;: proportionnelles au modèle le plus énergivore affiché. Une barre plus courte signifie une estimation plus basse.</li>
+        <li><strong>Pastille orange «&nbsp;Recommandé&nbsp;»</strong>&nbsp;: le modèle conseillé dans la synthèse.</li>
+        <li><strong>Trier par</strong>&nbsp;: énergie croissante, décroissante ou ordre alphabétique.</li>
+        <li><strong>Cliquer sur une ligne</strong> ouvre le détail&nbsp;: source du facteur énergétique, sortie prévue en tokens, réactions historiques, nombre d'observations, et selon la méthode, les exposants ou la ventilation base / entrée / sortie.</li>
+        <li><strong>Exporter CSV</strong>&nbsp;: télécharge le tableau (voir partie 08).</li>
+      </ul>
+      <div class="callout info">
+        <span class="label">Astuce</span>
+        <p>Avec ML.ENERGY, le détail affiche la plage P10–P90&nbsp;: elle reflète la variété des configurations GPU mesurées, pas un intervalle de confiance.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <span class="eyebrow">06 · Comparer</span>
+  <h2>Le face-à-face entre deux modèles</h2>
+  <figure class="shot"><img src="screens/06-comparateur.png" alt="Comparateur" /><figcaption>FIG. 7 — Comparer deux modèles, à conditions égales.</figcaption></figure>
+  <ol class="steps">
+    <li><strong>Choisir le modèle A et le modèle B</strong>Par défaut, A est le minimum énergétique et B la recommandation. Changez-les librement via les listes.</li>
+    <li><strong>Lire la conclusion</strong>La bande verte indique de combien de Wh, et de quel pourcentage, le modèle B est plus ou moins énergivore que A.</li>
+    <li><strong>Enregistrer la comparaison</strong>Le bouton la rattache à l'analyse en cours. Vous la retrouverez dans l'Historique, prête à être rouverte.</li>
+  </ol>
+  <p>Les deux valeurs reposent sur le même prompt, la même source et la même méthode&nbsp;: la comparaison est équitable. Les écarts restent des estimations, pas des économies mesurées.</p>
+</section>
+
+<section class="section">
+  <span class="eyebrow">07 · Historique</span>
+  <h2>Retrouver ses analyses</h2>
+  <div class="split">
+    <div>
+      <p>Le bouton <strong>Historique</strong> de l'en-tête ouvre un panneau latéral qui conserve jusqu'à <strong>20 analyses</strong>.</p>
+      <ul>
+        <li><strong>Revoir l'analyse</strong>&nbsp;: réaffiche les résultats tels qu'ils étaient, sans relancer le moteur.</li>
+        <li><strong>Comparaisons enregistrées</strong>&nbsp;: un clic rouvre directement le face-à-face correspondant.</li>
+        <li><strong>Corbeille</strong>&nbsp;: supprime une analyse&nbsp;; <strong>Tout effacer</strong> vide l'historique après confirmation.</li>
+        <li><strong>Échap</strong> ou la croix referment le panneau.</li>
+      </ul>
+      <h3>Confidentialité</h3>
+      <table>
+        <tr><th style="width:38%">Mode</th><th>Comportement</th></tr>
+        <tr><td>Privé (par défaut)</td><td>Les analyses restent en mémoire jusqu'au rechargement ou à la fermeture de l'onglet. Rien n'est écrit dans le navigateur.</td></tr>
+        <tr><td>Conserver sur cet appareil</td><td>Les analyses sont enregistrées dans ce navigateur (localStorage), prompts compris, en clair. Décocher l'option efface cette copie.</td></tr>
+      </table>
+      <div class="callout">
+        <span class="label">Attention</span>
+        <p>N'activez pas la conservation sur un ordinateur partagé si vos prompts sont sensibles. Rouvrir une analyse est une consultation&nbsp;: relancez l'estimation pour obtenir des valeurs à jour.</p>
+      </div>
+    </div>
+    <figure class="shot"><img src="screens/07-historique.png" alt="Historique" /><figcaption>FIG. 8 — Le panneau Historique.</figcaption></figure>
+  </div>
+</section>
+
+<section class="section">
+  <span class="eyebrow">08 · Exporter et documenter</span>
+  <h2>Partager et approfondir</h2>
+  <h3>Export CSV</h3>
+  <p>Le bouton <strong>Exporter CSV</strong> du classement télécharge un fichier <code>eco-routage-resultats-AAAA-MM-JJ.csv</code>, lisible directement dans Excel (séparateur point-virgule, UTF-8). Chaque ligne correspond à un modèle affiché et reprend notamment&nbsp;:</p>
+  <ul>
+    <li>l'énergie estimée (Wh), les tokens de sortie estimés et le nombre d'observations&nbsp;;</li>
+    <li>le score et le nombre de réactions, et si le modèle est recommandé&nbsp;;</li>
+    <li>la source, la méthode, les tokens d'entrée approximés et le filtre appliqué&nbsp;;</li>
+    <li>selon la méthode, la ventilation base / entrée / sortie, les exposants ou la plage P10–P90.</li>
+  </ul>
+  <h3>Documentation intégrée</h3>
+  <p>Le bouton <strong>Documentation</strong> ouvre une visionneuse avec deux documents&nbsp;: ce <strong>guide d'utilisation</strong> et la <strong>documentation technique de la V0.2</strong> (formules, résultats, limites). Chacun peut être ouvert dans un nouvel onglet ou téléchargé.</p>
+  <figure class="shot"><img src="screens/08-documentation.png" alt="Documentation" /><figcaption>FIG. 9 — La visionneuse de documentation.</figcaption></figure>
+</section>
+
+<section class="section">
+  <span class="eyebrow">09 · Dépannage</span>
+  <h2>Messages d'état et solutions</h2>
+  <p class="lead">Le voyant situé sous le formulaire indique en permanence l'état du moteur. Voici comment réagir à chaque message.</p>
+  <table>
+    <tr><th style="width:33%">Message affiché</th><th style="width:30%">Cause probable</th><th>Que faire</th></tr>
+    <tr><td>Moteur disponible — calcul sur données locales.</td><td>Tout est prêt.</td><td>Saisissez un prompt et lancez l'estimation.</td></tr>
+    <tr><td>Connexion au moteur en cours…</td><td>L'interface interroge l'API.</td><td>Patientez quelques secondes.</td></tr>
+    <tr><td>API Python inaccessible.</td><td>Le moteur n'est pas démarré ou ne répond pas sur le port 8000.</td><td>Lancez <code>python -m uvicorn api.main:app --reload --port 8000</code>, puis cliquez sur l'icône de rafraîchissement à côté du message.</td></tr>
+    <tr><td>Jeu de données CompareAI manquant sur le serveur.</td><td><code>conversations.parquet</code> est absent.</td><td>Placez-le dans <code>source_données/compareAI/</code>, puis rafraîchissez.</td></tr>
+    <tr><td>Fichier de réactions CompareAI manquant.</td><td><code>reactions.parquet</code> est absent.</td><td>Ajoutez-le au même dossier.</td></tr>
+    <tr><td>Données ML.ENERGY manquantes.</td><td>Le fichier de mesures ML.ENERGY est absent.</td><td>Vérifiez <code>source_données/ml-energy-v3/runs/llm.parquet</code> ou revenez à CompareAI.</td></tr>
+  </table>
+  <h3>Autres situations</h3>
+  <table>
+    <tr><th style="width:33%">Situation</th><th>Solution</th></tr>
+    <tr><td>Le bouton «&nbsp;Lancer l'estimation&nbsp;» reste grisé</td><td>Le prompt est vide ou le moteur n'est pas disponible&nbsp;: vérifiez le voyant.</td></tr>
+    <tr><td>Le calcul est long</td><td>Normal au premier lancement. Vous pouvez cliquer sur «&nbsp;Annuler l'attente&nbsp;» et relancer plus tard.</td></tr>
+    <tr><td>Un message d'erreur rouge apparaît</td><td>Le calcul n'a pas abouti&nbsp;: lisez le message, corrigez la cause (souvent le moteur) et relancez.</td></tr>
+    <tr><td>L'historique a disparu</td><td>En mode privé, il est effacé au rechargement. Activez «&nbsp;Conserver mes analyses sur cet appareil&nbsp;» pour le garder.</td></tr>
+    <tr><td>Le menu «&nbsp;Modèle de calcul&nbsp;» est bloqué</td><td>La source ML.ENERGY impose la méthode «&nbsp;sortie seule&nbsp;». Revenez à CompareAI pour choisir une autre méthode.</td></tr>
+  </table>
+</section>
+
+<section class="section">
+  <span class="eyebrow">10 · Bonnes pratiques</span>
+  <h2>Bien interpréter les résultats</h2>
+  <ul>
+    <li><strong>Raisonner en ordre de grandeur.</strong> Les valeurs en Wh servent à comparer les modèles entre eux pour une même requête, pas à facturer une consommation réelle.</li>
+    <li><strong>Comparer à réglages égaux.</strong> Ne comparez pas un résultat CompareAI avec un résultat ML.ENERGY&nbsp;: les sources reposent sur des bases différentes.</li>
+    <li><strong>Tester plusieurs formulations.</strong> La longueur du prompt influe sur la prédiction&nbsp;: essayez une version courte et une version détaillée.</li>
+    <li><strong>Garder un œil sur le compromis.</strong> Un filtre de qualité strict peut éloigner la recommandation du minimum énergétique.</li>
+    <li><strong>Relancer plutôt que rouvrir.</strong> Une analyse rouverte depuis l'historique est un instantané&nbsp;; relancez pour actualiser.</li>
+  </ul>
+
+  <h3>Glossaire</h3>
+  <dl class="glossary">
+    <dt>Prompt</dt><dd>La demande écrite que l'on adresserait à un modèle d'IA.</dd>
+    <dt>Token</dt><dd>Unité de texte traitée par un modèle (≈ 4 caractères). L'énergie dépend des tokens d'entrée et de sortie.</dd>
+    <dt>Wh</dt><dd>Wattheure, unité d'énergie. Les estimations par requête sont souvent de l'ordre du centième de Wh.</dd>
+    <dt>CompareAI</dt><dd>Jeu de données de conversations et de réactions servant de référence énergétique estimée.</dd>
+    <dt>ML.ENERGY</dt><dd>Benchmark de mesures d'énergie sur GPU, utilisé comme source alternative pour les modèles couverts.</dd>
+    <dt>Loi de puissance</dt><dd>Méthode V0.2 qui relie l'énergie aux longueurs d'entrée et de sortie de façon non linéaire.</dd>
+    <dt>Filtre de qualité</dt><dd>Critères de réactions historiques (volume et score) qu'un modèle doit remplir pour être recommandé.</dd>
+    <dt>P10–P90</dt><dd>Plage couvrant 80&nbsp;% des configurations GPU mesurées par ML.ENERGY.</dd>
+  </dl>
+</section>
+
+</body>
+</html>
